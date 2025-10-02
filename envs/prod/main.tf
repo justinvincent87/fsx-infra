@@ -10,19 +10,19 @@ variable "account_id" { default = "718277287949" }
 variable "org" { default = "fsx" }
 variable "env" { default = "prod" }
 
-provider "aws" { 
-  region = var.region 
+provider "aws" {
+  region  = var.region
   profile = "terraform"
 }
 
 module "network" {
-  source = "../../modules/network"
-  name   = "${var.org}-${var.env}"
-  vpc_cidr = "10.10.0.0/16"
-  public_subnet_cidrs = ["10.10.1.0/24","10.10.2.0/24","10.10.3.0/24"]
-  private_subnet_cidrs= ["10.10.11.0/24","10.10.12.0/24","10.10.13.0/24"]
-  azs = ["${var.region}a","${var.region}b","${var.region}c"]
-  nat_count = [0,1,2]
+  source               = "../../modules/network"
+  name                 = "${var.org}-${var.env}"
+  vpc_cidr             = "10.10.0.0/16"
+  public_subnet_cidrs  = ["10.10.1.0/24", "10.10.2.0/24", "10.10.3.0/24"]
+  private_subnet_cidrs = ["10.10.11.0/24", "10.10.12.0/24", "10.10.13.0/24"]
+  azs                  = ["${var.region}a", "${var.region}b", "${var.region}c"]
+  nat_count            = [0, 1, 2]
   tags = {
     Environment = var.env
     Project     = var.org
@@ -32,11 +32,11 @@ module "network" {
 }
 
 module "iam" {
-  source = "../../modules/iam"
-  name = "${var.org}-${var.env}"
+  source              = "../../modules/iam"
+  name                = "${var.org}-${var.env}"
   trusted_account_arn = "arn:aws:iam::${var.account_id}:root"
-  tags = { 
-    Environment = var.env 
+  tags = {
+    Environment = var.env
   }
 }
 module "ec2" {
@@ -112,15 +112,15 @@ module "ec2" {
 }
 
 module "rds" {
-  source = "../../modules/rds"
-  name   = "${var.org}-${var.env}-mysql"
-  engine = "mysql"
-  engine_version = "8.0"
-  instance_class = "db.t3.medium"
-  allocated_storage = 20
-  username = "admin"
-  password = "changeme123!" # Use a secret manager in production
-  subnet_ids = module.network.private_subnet_ids
+  source                 = "../../modules/rds"
+  name                   = "${var.org}-${var.env}-mysql"
+  engine                 = "mysql"
+  engine_version         = "8.0"
+  instance_class         = "db.t3.medium"
+  allocated_storage      = 20
+  username               = "admin"
+  password               = "changeme123!" # Use a secret manager in production
+  subnet_ids             = module.network.private_subnet_ids
   vpc_security_group_ids = [module.network.default_sg_id]
   tags = {
     Environment = var.env
@@ -129,7 +129,7 @@ module "rds" {
 }
 
 module "s3" {
-  source = "../../modules/s3"
+  source      = "../../modules/s3"
   bucket_name = "${var.org}-${var.env}-resources"
   tags = {
     Environment = var.env
@@ -138,11 +138,11 @@ module "s3" {
 }
 
 module "alb" {
-  source = "../../modules/alb"
-  name   = "${var.org}-${var.env}-alb"
-  vpc_id = module.network.vpc_id
-  subnet_ids = module.network.public_subnet_ids
-  security_group_ids = [module.network.default_sg_id]
+  source              = "../../modules/alb"
+  name                = "${var.org}-${var.env}-alb"
+  vpc_id              = module.network.vpc_id
+  subnet_ids          = module.network.public_subnet_ids
+  security_group_ids  = [module.network.default_sg_id]
   target_instance_ids = module.ec2.instance_ids
   tags = {
     Environment = var.env
