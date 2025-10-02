@@ -1,0 +1,4 @@
+region = "us-east-1"
+account_id = "718277287949"
+org = "fsx"
+env = "prod"

@@ -1,0 +1,5 @@
+provider "aws" {
+  region = var.region
+  # Leave credentials to CI (assume role) or local AWS CLI/profile
+}
+variable "region" { type = string }
