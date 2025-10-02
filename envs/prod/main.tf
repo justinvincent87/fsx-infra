@@ -111,29 +111,6 @@ module "ec2" {
   ]
 }
 
-
-# Store RDS credentials in AWS Secrets Manager
-resource "aws_secretsmanager_secret" "rds" {
-  name = "${var.org}-${var.env}-rds-credentials"
-}
-
-resource "aws_secretsmanager_secret_version" "rds" {
-  secret_id = aws_secretsmanager_secret.rds.id
-  secret_string = jsonencode({
-    username = "admin"
-    password = "changeme123!" # Change this value in the AWS Console after initial apply
-  })
-}
-
-# Retrieve RDS credentials from Secrets Manager
-data "aws_secretsmanager_secret_version" "rds" {
-  secret_id = aws_secretsmanager_secret.rds.id
-}
-
-locals {
-  rds_secret = jsondecode(data.aws_secretsmanager_secret_version.rds.secret_string)
-}
-
 module "rds" {
   source                 = "../../modules/rds"
   name                   = "${var.org}-${var.env}-mysql"
@@ -141,8 +118,8 @@ module "rds" {
   engine_version         = "8.0"
   instance_class         = "db.t3.medium"
   allocated_storage      = 20
-  username               = local.rds_secret.username
-  password               = local.rds_secret.password
+  username               = "fsxadmin"
+  password               = "qzMZRi7FlTzBWXop"
   subnet_ids             = module.network.private_subnet_ids
   vpc_security_group_ids = [module.network.default_sg_id]
   tags = {
