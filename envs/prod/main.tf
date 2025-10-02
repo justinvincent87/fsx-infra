@@ -11,7 +11,7 @@ variable "org" { default = "fsx" }
 variable "env" { default = "prod" }
 
 provider "aws" {
-  region  = var.region
+  region = var.region
   # profile = "terraform"
 }
 
