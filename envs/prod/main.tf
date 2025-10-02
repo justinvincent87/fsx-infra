@@ -12,7 +12,7 @@ variable "env" { default = "prod" }
 
 provider "aws" {
   region  = var.region
-  profile = "terraform"
+  # profile = "terraform"
 }
 
 module "network" {

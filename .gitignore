@@ -36,3 +36,4 @@ Thumbs.db
 # Optional: override in repo for shared vars
 !example.tfvars
 
+tfplan
