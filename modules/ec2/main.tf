@@ -2,13 +2,13 @@
 variable "instances" {
   description = "List of maps describing each EC2 instance."
   type = list(object({
-    name           = string
-    subnet_id      = string
-    instance_type  = string
-    ami_id         = string
-    port           = number
-    public         = bool
-    tags           = map(string)
+    name          = string
+    subnet_id     = string
+    instance_type = string
+    ami_id        = string
+    port          = number
+    public        = bool
+    tags          = map(string)
   }))
 }
 
@@ -22,17 +22,17 @@ resource "aws_security_group" "app" {
 
   # Allow all traffic between instances in this SG
   ingress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    self        = true
+    from_port = 0
+    to_port   = 0
+    protocol  = "-1"
+    self      = true
   }
 
   # Allow inbound for each app port (web and auth-server from anywhere, others from within VPC)
   dynamic "ingress" {
     for_each = [for idx, inst in var.instances : {
-      idx = idx
-      port = inst.port
+      idx    = idx
+      port   = inst.port
       public = inst.public
     }]
     content {
@@ -76,9 +76,9 @@ resource "aws_iam_role" "ec2_s3" {
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
-      Effect = "Allow"
+      Effect    = "Allow"
       Principal = { Service = "ec2.amazonaws.com" }
-      Action = "sts:AssumeRole"
+      Action    = "sts:AssumeRole"
     }]
   })
 }
@@ -94,15 +94,15 @@ resource "aws_iam_instance_profile" "ec2_s3" {
 }
 
 resource "aws_instance" "this" {
-  count                     = length(var.instances)
-  ami                       = var.instances[count.index].ami_id
-  instance_type             = var.instances[count.index].instance_type
-  subnet_id                 = var.instances[count.index].subnet_id
-  vpc_security_group_ids    = [aws_security_group.app.id]
-  iam_instance_profile      = aws_iam_instance_profile.ec2_s3.name
+  count                       = length(var.instances)
+  ami                         = var.instances[count.index].ami_id
+  instance_type               = var.instances[count.index].instance_type
+  subnet_id                   = var.instances[count.index].subnet_id
+  vpc_security_group_ids      = [aws_security_group.app.id]
+  iam_instance_profile        = aws_iam_instance_profile.ec2_s3.name
   associate_public_ip_address = var.instances[count.index].public
-  tags                      = merge(var.instances[count.index].tags, { Name = var.instances[count.index].name })
-  user_data                 = null
+  tags                        = merge(var.instances[count.index].tags, { Name = var.instances[count.index].name })
+  user_data                   = null
 }
 
 output "instance_ids" {

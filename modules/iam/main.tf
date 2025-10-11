@@ -10,9 +10,9 @@ resource "aws_iam_role" "ci_assume" {
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
-      Effect = "Allow"
+      Effect    = "Allow"
       Principal = { AWS = var.trusted_account_arn } # CI runner or central account ARN
-      Action = "sts:AssumeRole"
+      Action    = "sts:AssumeRole"
     }]
   })
   tags = var.tags

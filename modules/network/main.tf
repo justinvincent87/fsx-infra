@@ -9,7 +9,7 @@ resource "aws_vpc" "this" {
   cidr_block           = var.vpc_cidr
   enable_dns_support   = true
   enable_dns_hostnames = true
-  tags = merge(var.tags, { "Name" = "${var.name}-vpc" })
+  tags                 = merge(var.tags, { "Name" = "${var.name}-vpc" })
 }
 
 resource "aws_internet_gateway" "igw" {
@@ -23,22 +23,22 @@ resource "aws_subnet" "public" {
   cidr_block              = var.public_subnet_cidrs[count.index]
   availability_zone       = var.azs[count.index % length(var.azs)]
   map_public_ip_on_launch = true
-  tags = merge(var.tags, { "Name" = "${var.name}-public-${count.index}" , "kubernetes.io/role/elb" = "1"})
+  tags                    = merge(var.tags, { "Name" = "${var.name}-public-${count.index}", "kubernetes.io/role/elb" = "1" })
 }
 
 
 # One NAT Gateway per AZ (and EIP)
 resource "aws_eip" "nat" {
-  count = length(var.azs)
+  count  = length(var.azs)
   domain = "vpc"
-  tags  = merge(var.tags, { "Name" = "${var.name}-nat-${count.index}" })
+  tags   = merge(var.tags, { "Name" = "${var.name}-nat-${count.index}" })
 }
 
 resource "aws_nat_gateway" "nat" {
   count         = length(var.azs)
   allocation_id = aws_eip.nat[count.index].id
   subnet_id     = aws_subnet.public[count.index].id
-  tags = merge(var.tags, { "Name" = "${var.name}-nat-${count.index}" })
+  tags          = merge(var.tags, { "Name" = "${var.name}-nat-${count.index}" })
 }
 
 resource "aws_subnet" "private" {
@@ -46,7 +46,7 @@ resource "aws_subnet" "private" {
   vpc_id            = aws_vpc.this.id
   cidr_block        = var.private_subnet_cidrs[count.index]
   availability_zone = var.azs[count.index % length(var.azs)]
-  tags = merge(var.tags, { "Name" = "${var.name}-private-${count.index}" })
+  tags              = merge(var.tags, { "Name" = "${var.name}-private-${count.index}" })
 }
 
 resource "aws_route_table" "public" {
@@ -69,13 +69,13 @@ resource "aws_route_table_association" "public_assoc" {
 
 # One private route table per AZ, each associated with a NAT in that AZ
 resource "aws_route_table" "private" {
-  count = length(var.azs)
+  count  = length(var.azs)
   vpc_id = aws_vpc.this.id
   tags   = merge(var.tags, { "Name" = "${var.name}-private-rt-${count.index}" })
 }
 
 resource "aws_route" "private_nat" {
-  count = length(var.azs)
+  count                  = length(var.azs)
   route_table_id         = aws_route_table.private[count.index].id
   destination_cidr_block = "0.0.0.0/0"
   nat_gateway_id         = aws_nat_gateway.nat[count.index].id
@@ -89,20 +89,20 @@ resource "aws_route_table_association" "private_assoc" {
 }
 # VPC Endpoints for S3 and Secrets Manager
 resource "aws_vpc_endpoint" "s3" {
-  vpc_id          = aws_vpc.this.id
-  service_name    = "com.amazonaws.${var.region}.s3"
+  vpc_id            = aws_vpc.this.id
+  service_name      = "com.amazonaws.${var.region}.s3"
   vpc_endpoint_type = "Gateway"
-  route_table_ids = concat([aws_route_table.public.id], aws_route_table.private[*].id)
-  tags = merge(var.tags, { "Name" = "${var.name}-s3-endpoint" })
+  route_table_ids   = concat([aws_route_table.public.id], aws_route_table.private[*].id)
+  tags              = merge(var.tags, { "Name" = "${var.name}-s3-endpoint" })
 }
 
 resource "aws_vpc_endpoint" "secretsmanager" {
-  vpc_id            = aws_vpc.this.id
-  service_name      = "com.amazonaws.${var.region}.secretsmanager"
-  vpc_endpoint_type = "Interface"
-  subnet_ids        = aws_subnet.private[*].id
+  vpc_id             = aws_vpc.this.id
+  service_name       = "com.amazonaws.${var.region}.secretsmanager"
+  vpc_endpoint_type  = "Interface"
+  subnet_ids         = aws_subnet.private[*].id
   security_group_ids = [data.aws_security_group.default.id]
-  tags = merge(var.tags, { "Name" = "${var.name}-secretsmanager-endpoint" })
+  tags               = merge(var.tags, { "Name" = "${var.name}-secretsmanager-endpoint" })
 }
 
 
