@@ -1,3 +1,8 @@
+variable "key_name" {
+  description = "The name of the SSH key pair to use for EC2 instances."
+  type        = string
+  default     = null
+}
 
 variable "instances" {
   description = "List of maps describing each EC2 instance."
@@ -108,6 +113,7 @@ resource "aws_instance" "this" {
   vpc_security_group_ids      = [aws_security_group.app.id]
   iam_instance_profile        = aws_iam_instance_profile.ec2_s3.name
   associate_public_ip_address = var.instances[count.index].public
+  key_name                    = var.key_name
   tags                        = merge(var.instances[count.index].tags, { Name = var.instances[count.index].name })
   user_data                   = null
 }

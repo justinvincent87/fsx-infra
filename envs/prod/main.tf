@@ -1,3 +1,18 @@
+# Generate an SSH key pair for EC2 access
+resource "tls_private_key" "ec2" {
+  algorithm = "RSA"
+  rsa_bits  = 4096
+}
+
+resource "aws_key_pair" "ec2" {
+  key_name   = "fsx-ec2-key"
+  public_key = tls_private_key.ec2.public_key_openssh
+}
+
+output "ec2_private_key_pem" {
+  value     = tls_private_key.ec2.private_key_pem
+  sensitive = true
+}
 
 # Terraform configuration block: specifies required Terraform and provider versions
 terraform {
@@ -56,8 +71,9 @@ module "iam" {
 
 # EC2 module: provisions 5 EC2 instances for different app modules
 module "ec2" {
-  source = "../../modules/ec2"
-  vpc_id = module.network.vpc_id
+  source   = "../../modules/ec2"
+  vpc_id   = module.network.vpc_id
+  key_name = aws_key_pair.ec2.key_name
   instances = [
     # Instance 1: fsx-production (private subnet, port 9001)
     {
