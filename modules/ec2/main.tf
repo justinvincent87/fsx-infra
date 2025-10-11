@@ -68,6 +68,13 @@ resource "aws_security_group" "app" {
   }
 
   tags = { Name = "ec2-app-sg" }
+  # Allow SSH from anywhere (for production, restrict to your IP)
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 }
 
 # IAM role for S3 access
