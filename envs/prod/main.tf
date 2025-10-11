@@ -51,21 +51,10 @@ module "iam" {
 }
 
 
-# EFS module: creates an Elastic File System and mount targets in each private subnet
-module "efs" {
-  source             = "../../modules/efs"
-  name               = "${var.org}-${var.env}-efs"
-  vpc_id             = module.network.vpc_id
-  subnet_ids         = module.network.private_subnet_ids
-  security_group_ids = [module.network.default_sg_id]
-  tags = {
-    Environment = var.env
-    Project     = var.org
-  }
-}
 
 
-# EC2 module: provisions 5 EC2 instances for different app modules, mounts EFS at /mnt/filestore
+
+# EC2 module: provisions 5 EC2 instances for different app modules
 module "ec2" {
   source = "../../modules/ec2"
   vpc_id = module.network.vpc_id
@@ -83,14 +72,6 @@ module "ec2" {
         Project     = var.org
         Role        = "fsx-production"
       }
-      user_data = <<-EOF
-#!/bin/bash
-# Install EFS utilities and mount EFS at /mnt/filestore
-yum install -y amazon-efs-utils nfs-utils
-mkdir -p /mnt/filestore
-mount -t efs -o tls ${module.efs.efs_id}:/ /mnt/filestore
-echo "${module.efs.efs_id}:/ /mnt/filestore efs defaults,_netdev 0 0" >> /etc/fstab
-EOF
     },
     # Instance 2: fsx-planning (private subnet, port 9002)
     {
@@ -105,14 +86,6 @@ EOF
         Project     = var.org
         Role        = "fsx-planning"
       }
-      user_data = <<-EOF
-#!/bin/bash
-# Install EFS utilities and mount EFS at /mnt/filestore
-yum install -y amazon-efs-utils nfs-utils
-mkdir -p /mnt/filestore
-mount -t efs -o tls ${module.efs.efs_id}:/ /mnt/filestore
-echo "${module.efs.efs_id}:/ /mnt/filestore efs defaults,_netdev 0 0" >> /etc/fstab
-EOF
     },
     # Instance 3: fsx-scheduler (private subnet, port 9006)
     {
@@ -127,14 +100,6 @@ EOF
         Project     = var.org
         Role        = "fsx-scheduler"
       }
-      user_data = <<-EOF
-#!/bin/bash
-# Install EFS utilities and mount EFS at /mnt/filestore
-yum install -y amazon-efs-utils nfs-utils
-mkdir -p /mnt/filestore
-mount -t efs -o tls ${module.efs.efs_id}:/ /mnt/filestore
-echo "${module.efs.efs_id}:/ /mnt/filestore efs defaults,_netdev 0 0" >> /etc/fstab
-EOF
     },
     # Instance 4: fsx-web (public subnet, port 8001)
     {
@@ -149,14 +114,6 @@ EOF
         Project     = var.org
         Role        = "fsx-web"
       }
-      user_data = <<-EOF
-#!/bin/bash
-# Install EFS utilities and mount EFS at /mnt/filestore
-yum install -y amazon-efs-utils nfs-utils
-mkdir -p /mnt/filestore
-mount -t efs -o tls ${module.efs.efs_id}:/ /mnt/filestore
-echo "${module.efs.efs_id}:/ /mnt/filestore efs defaults,_netdev 0 0" >> /etc/fstab
-EOF
     },
     # Instance 5: fsx-auth-server (public subnet, port 8002)
     {
@@ -171,14 +128,6 @@ EOF
         Project     = var.org
         Role        = "fsx-auth-server"
       }
-      user_data = <<-EOF
-#!/bin/bash
-# Install EFS utilities and mount EFS at /mnt/filestore
-yum install -y amazon-efs-utils nfs-utils
-mkdir -p /mnt/filestore
-mount -t efs -o tls ${module.efs.efs_id}:/ /mnt/filestore
-echo "${module.efs.efs_id}:/ /mnt/filestore efs defaults,_netdev 0 0" >> /etc/fstab
-EOF
     }
   ]
 }
