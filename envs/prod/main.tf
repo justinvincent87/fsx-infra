@@ -1,29 +1,4 @@
 # Generate an SSH key pair for EC2 access
-resource "tls_private_key" "ec2" {
-  algorithm = "RSA"
-  rsa_bits  = 4096
-}
-
-# New key pair for app EC2s
-resource "tls_private_key" "app" {
-  algorithm = "RSA"
-  rsa_bits  = 4096
-}
-
-resource "aws_key_pair" "app" {
-  key_name   = "fsx-app-key"
-  public_key = tls_private_key.app.public_key_openssh
-}
-
-resource "aws_key_pair" "ec2" {
-  key_name   = "fsx-ec2-key"
-  public_key = tls_private_key.ec2.public_key_openssh
-}
-
-output "ec2_private_key_pem" {
-  value     = tls_private_key.ec2.private_key_pem
-  sensitive = true
-}
 
 # Terraform configuration block: specifies required Terraform and provider versions
 terraform {
@@ -89,11 +64,11 @@ module "ec2" {
     {
       name          = "fsx-bastion"
       subnet_id     = module.network.public_subnet_ids[2]
-      instance_type = "t2.nano"
+      instance_type = "m5.xlarge"
       ami_id        = "ami-0c94855ba95c71c99"
       port          = 22
       public        = true
-      key_name      = aws_key_pair.ec2.key_name
+      key_name      = "fsx-ec2-key"
       tags = {
         Environment = var.env
         Project     = var.org
@@ -108,7 +83,7 @@ module "ec2" {
       ami_id        = "ami-0c94855ba95c71c99"
       port          = 9001
       public        = false
-      key_name      = aws_key_pair.app.key_name
+      key_name      = "fsx-app-key"
       tags = {
         Environment = var.env
         Project     = var.org
@@ -123,7 +98,7 @@ module "ec2" {
       ami_id        = "ami-0c94855ba95c71c99"
       port          = 9002
       public        = false
-      key_name      = aws_key_pair.app.key_name
+      key_name      = "fsx-app-key"
       tags = {
         Environment = var.env
         Project     = var.org
@@ -138,7 +113,7 @@ module "ec2" {
       ami_id        = "ami-0c94855ba95c71c99"
       port          = 9006
       public        = false
-      key_name      = aws_key_pair.app.key_name
+      key_name      = "fsx-app-key"
       tags = {
         Environment = var.env
         Project     = var.org
@@ -153,7 +128,7 @@ module "ec2" {
       ami_id        = "ami-0c94855ba95c71c99"
       port          = 8001
       public        = false
-      key_name      = aws_key_pair.app.key_name
+      key_name      = "fsx-app-key"
       tags = {
         Environment = var.env
         Project     = var.org
@@ -168,7 +143,7 @@ module "ec2" {
       ami_id        = "ami-0c94855ba95c71c99"
       port          = 8080
       public        = false
-      key_name      = aws_key_pair.app.key_name
+      key_name      = "fsx-app-key"
       tags = {
         Environment = var.env
         Project     = var.org
