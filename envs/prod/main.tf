@@ -75,6 +75,20 @@ module "ec2" {
   vpc_id   = module.network.vpc_id
   key_name = aws_key_pair.ec2.key_name
   instances = [
+    # Bastion host (public subnet, t2.nano)
+    {
+      name          = "fsx-bastion"
+      subnet_id     = module.network.public_subnet_ids[2]
+      instance_type = "t2.nano"
+      ami_id        = "ami-0c94855ba95c71c99"
+      port          = 22
+      public        = true
+      tags = {
+        Environment = var.env
+        Project     = var.org
+        Role        = "fsx-bastion"
+      }
+    },
     # Instance 1: fsx-production (private subnet, port 9001)
     {
       name          = "fsx-production"
@@ -117,28 +131,28 @@ module "ec2" {
         Role        = "fsx-scheduler"
       }
     },
-    # Instance 4: fsx-web (public subnet, port 8001)
+    # Instance 4: fsx-web (private subnet, port 8001)
     {
       name          = "fsx-web"
-      subnet_id     = module.network.public_subnet_ids[0]
+      subnet_id     = module.network.private_subnet_ids[0]
       instance_type = "m5.xlarge"
       ami_id        = "ami-0c94855ba95c71c99"
       port          = 8001
-      public        = true
+      public        = false
       tags = {
         Environment = var.env
         Project     = var.org
         Role        = "fsx-web"
       }
     },
-    # Instance 5: fsx-auth-server (public subnet, port 8002)
+    # Instance 5: fsx-auth-server (private subnet, port 8080)
     {
       name          = "fsx-auth-server"
-      subnet_id     = module.network.public_subnet_ids[1]
+      subnet_id     = module.network.private_subnet_ids[1]
       instance_type = "m5.xlarge"
       ami_id        = "ami-0c94855ba95c71c99"
       port          = 8080
-      public        = true
+      public        = false
       tags = {
         Environment = var.env
         Project     = var.org
