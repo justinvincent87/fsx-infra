@@ -4,6 +4,17 @@ resource "tls_private_key" "ec2" {
   rsa_bits  = 4096
 }
 
+# New key pair for app EC2s
+resource "tls_private_key" "app" {
+  algorithm = "RSA"
+  rsa_bits  = 4096
+}
+
+resource "aws_key_pair" "app" {
+  key_name   = "fsx-app-key"
+  public_key = tls_private_key.app.public_key_openssh
+}
+
 resource "aws_key_pair" "ec2" {
   key_name   = "fsx-ec2-key"
   public_key = tls_private_key.ec2.public_key_openssh
@@ -71,11 +82,10 @@ module "iam" {
 
 # EC2 module: provisions 5 EC2 instances for different app modules
 module "ec2" {
-  source   = "../../modules/ec2"
-  vpc_id   = module.network.vpc_id
-  key_name = aws_key_pair.ec2.key_name
+  source = "../../modules/ec2"
+  vpc_id = module.network.vpc_id
   instances = [
-    # Bastion host (public subnet, t2.nano)
+    # Bastion host (public subnet, t2.nano, uses fsx-ec2-key)
     {
       name          = "fsx-bastion"
       subnet_id     = module.network.public_subnet_ids[2]
@@ -83,6 +93,7 @@ module "ec2" {
       ami_id        = "ami-0c94855ba95c71c99"
       port          = 22
       public        = true
+      key_name      = aws_key_pair.ec2.key_name
       tags = {
         Environment = var.env
         Project     = var.org
@@ -97,6 +108,7 @@ module "ec2" {
       ami_id        = "ami-0c94855ba95c71c99"
       port          = 9001
       public        = false
+      key_name      = aws_key_pair.app.key_name
       tags = {
         Environment = var.env
         Project     = var.org
@@ -111,6 +123,7 @@ module "ec2" {
       ami_id        = "ami-0c94855ba95c71c99"
       port          = 9002
       public        = false
+      key_name      = aws_key_pair.app.key_name
       tags = {
         Environment = var.env
         Project     = var.org
@@ -125,6 +138,7 @@ module "ec2" {
       ami_id        = "ami-0c94855ba95c71c99"
       port          = 9006
       public        = false
+      key_name      = aws_key_pair.app.key_name
       tags = {
         Environment = var.env
         Project     = var.org
@@ -139,6 +153,7 @@ module "ec2" {
       ami_id        = "ami-0c94855ba95c71c99"
       port          = 8001
       public        = false
+      key_name      = aws_key_pair.app.key_name
       tags = {
         Environment = var.env
         Project     = var.org
@@ -153,6 +168,7 @@ module "ec2" {
       ami_id        = "ami-0c94855ba95c71c99"
       port          = 8080
       public        = false
+      key_name      = aws_key_pair.app.key_name
       tags = {
         Environment = var.env
         Project     = var.org
