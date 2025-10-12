@@ -129,3 +129,8 @@ output "public_ips" {
 output "private_ips" {
   value = [for i in aws_instance.this : i.private_ip]
 }
+
+# Output the EC2 security group ID for use in RDS module
+output "app_sg_id" {
+  value = aws_security_group.app.id
+}

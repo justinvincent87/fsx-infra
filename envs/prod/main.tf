@@ -137,7 +137,7 @@ module "ec2" {
       subnet_id     = module.network.public_subnet_ids[1]
       instance_type = "m5.xlarge"
       ami_id        = "ami-0c94855ba95c71c99"
-      port          = 8002
+      port          = 8080
       public        = true
       tags = {
         Environment = var.env
@@ -160,7 +160,7 @@ module "rds" {
   username               = "fsxadmin"         # Use Secrets Manager for production
   password               = "qzMZRi7FlTzBWXop" # Use Secrets Manager for production
   subnet_ids             = module.network.private_subnet_ids
-  vpc_security_group_ids = [module.network.default_sg_id]
+  vpc_security_group_ids = [module.ec2.app_sg_id] # Allow MySQL from EC2 SG
   tags = {
     Environment = var.env
     Project     = var.org
@@ -181,12 +181,15 @@ module "s3" {
 
 # ALB module: provisions Application Load Balancer for public-facing services
 module "alb" {
-  source              = "../../modules/alb"
-  name                = "${var.org}-${var.env}-alb"
-  vpc_id              = module.network.vpc_id
-  subnet_ids          = module.network.public_subnet_ids
-  security_group_ids  = [module.network.default_sg_id]
-  target_instance_ids = module.ec2.instance_ids
+  source             = "../../modules/alb"
+  name               = "${var.org}-${var.env}-alb"
+  vpc_id             = module.network.vpc_id
+  subnet_ids         = module.network.public_subnet_ids
+  security_group_ids = [module.network.default_sg_id]
+  # Pass both instance IDs: [web, auth]
+  target_instance_ids = [module.ec2.instance_ids[3], module.ec2.instance_ids[4]]
+  web_port            = 80
+  auth_port           = 8080
   tags = {
     Environment = var.env
     Project     = var.org

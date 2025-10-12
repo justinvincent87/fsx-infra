@@ -140,6 +140,17 @@ data "aws_security_group" "default" {
   vpc_id = aws_vpc.this.id
 }
 
+# Allow inbound TCP on port 81 from anywhere for ALB (if using default SG)
+resource "aws_security_group_rule" "alb_81_inbound" {
+  type              = "ingress"
+  from_port         = 81
+  to_port           = 81
+  protocol          = "tcp"
+  cidr_blocks       = ["0.0.0.0/0"]
+  security_group_id = data.aws_security_group.default.id
+  description       = "Allow HTTP for ALB auth listener on port 81"
+}
+
 output "default_sg_id" {
   value = data.aws_security_group.default.id
 }
