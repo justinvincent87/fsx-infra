@@ -1,3 +1,24 @@
+# Shared ALB security group for all ALBs
+resource "aws_security_group" "alb" {
+  name        = "alb-sg"
+  description = "Allow HTTP from anywhere to ALB"
+  vpc_id      = aws_vpc.this.id
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  tags = merge(var.tags, {
+    Name = "alb-sg"
+  })
+}
 // infra/modules/network/main.tf
 terraform {
   required_providers {
@@ -138,17 +159,6 @@ output "secretsmanager_vpc_endpoint_id" {
 data "aws_security_group" "default" {
   name   = "default"
   vpc_id = aws_vpc.this.id
-}
-
-# Allow inbound TCP on port 81 from anywhere for ALB (if using default SG)
-resource "aws_security_group_rule" "alb_81_inbound" {
-  type              = "ingress"
-  from_port         = 81
-  to_port           = 81
-  protocol          = "tcp"
-  cidr_blocks       = ["0.0.0.0/0"]
-  security_group_id = data.aws_security_group.default.id
-  description       = "Allow HTTP for ALB auth listener on port 81"
 }
 
 output "default_sg_id" {

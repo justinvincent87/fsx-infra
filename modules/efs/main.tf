@@ -1,3 +1,12 @@
+resource "aws_security_group_rule" "efs_nfs" {
+  type                     = "ingress"
+  from_port                = 2049
+  to_port                  = 2049
+  protocol                 = "tcp"
+  security_group_id        = var.security_group_ids[0]
+  source_security_group_id = var.security_group_ids[0]
+  description              = "Allow NFS from EC2 SG"
+}
 # EFS Module
 
 variable "name" {}

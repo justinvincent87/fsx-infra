@@ -1,0 +1,6 @@
+#!/bin/bash
+set -e
+yum install -y amazon-efs-utils nfs-utils
+mkdir -p "${efs_mount_path}"
+echo "${efs_dns_name}:/ ${efs_mount_path} nfs4 defaults,_netdev 0 0" >> /etc/fstab
+mount -a

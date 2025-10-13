@@ -1,6 +1,8 @@
-# Generate an SSH key pair for EC2 access
 
-# Terraform configuration block: specifies required Terraform and provider versions
+# ============================================================================
+# Terraform Configuration: Backend, Providers, and Required Versions
+# ============================================================================
+
 terraform {
   required_version = ">= 1.3.0"
   required_providers {
@@ -8,30 +10,39 @@ terraform {
   }
 }
 
+# ============================================================================
+# Input Variables: Environment and AWS Account
+# ============================================================================
 
-# Input variables for environment and AWS account configuration
 variable "region" { default = "us-east-1" }
 variable "account_id" { default = "718277287949" }
 variable "org" { default = "fsx" }
 variable "env" { default = "prod" }
 
+# ============================================================================
+# AWS Provider Configuration
+# ============================================================================
 
-# AWS provider configuration: region is set from variable
 provider "aws" {
   region = var.region
   # profile = "terraform"
 }
 
 
-# Network module: provisions VPC, subnets, NAT gateways, route tables, and VPC endpoints
+
+
+# ============================================================================
+# Network Module: VPC, Subnets, NAT, Endpoints
+# ============================================================================
+
 module "network" {
   source               = "../../modules/network"
   name                 = "${var.org}-${var.env}"
-  vpc_cidr             = "10.10.0.0/16"                                         # Main VPC CIDR block
-  public_subnet_cidrs  = ["10.10.1.0/24", "10.10.2.0/24", "10.10.3.0/24"]       # Public subnets for ALB, web, etc.
-  private_subnet_cidrs = ["10.10.11.0/24", "10.10.12.0/24", "10.10.13.0/24"]    # Private subnets for app and DB
-  azs                  = ["${var.region}a", "${var.region}b", "${var.region}c"] # Availability Zones
-  nat_count            = [0, 1, 2]                                              # NAT gateway mapping
+  vpc_cidr             = "10.10.0.0/16"
+  public_subnet_cidrs  = ["10.10.1.0/24", "10.10.2.0/24", "10.10.3.0/24"]
+  private_subnet_cidrs = ["10.10.11.0/24", "10.10.12.0/24", "10.10.13.0/24"]
+  azs                  = ["${var.region}a", "${var.region}b", "${var.region}c"]
+  nat_count            = [0, 1, 2]
   tags = {
     Environment = var.env
     Project     = var.org
@@ -40,8 +51,10 @@ module "network" {
   region = var.region
 }
 
+# ============================================================================
+# IAM Module: Roles and Policies
+# ============================================================================
 
-# IAM module: creates IAM roles and policies for EC2 and other resources
 module "iam" {
   source              = "../../modules/iam"
   name                = "${var.org}-${var.env}"
@@ -51,16 +64,20 @@ module "iam" {
   }
 }
 
+# ============================================================================
+# EC2 Module: Compute Instances (Bastion, App, Web, Auth, Scheduler)
+# ============================================================================
 
 
-
-
-# EC2 module: provisions 5 EC2 instances for different app modules
-module "ec2" {
-  source = "../../modules/ec2"
-  vpc_id = module.network.vpc_id
+# Bastion host module (single instance)
+module "bastion" {
+  source             = "../../modules/ec2"
+  vpc_id             = module.network.vpc_id
+  efs_dns_name       = ""
+  efs_mount_path     = "/opt/filestore/data"
+  bastion_private_ip = "0.0.0.0/0" # Not used for bastion itself
+  name_prefix        = "bastion-"
   instances = [
-    # Bastion host (public subnet, t2.nano, uses fsx-ec2-key)
     {
       name          = "fsx-bastion"
       subnet_id     = module.network.public_subnet_ids[2]
@@ -74,10 +91,21 @@ module "ec2" {
         Project     = var.org
         Role        = "fsx-bastion"
       }
-    },
-    # Instance 1: fsx-production (private subnet, port 9001)
+    }
+  ]
+}
+
+# All other EC2s (app, web, auth, scheduler)
+module "ec2" {
+  source             = "../../modules/ec2"
+  vpc_id             = module.network.vpc_id
+  efs_dns_name       = module.efs.efs_dns_name
+  efs_mount_path     = "/opt/filestore/data"
+  bastion_private_ip = module.bastion.private_ips[0]
+  instances = [
+    # Instance 1: fsx-production1 (private subnet, app server)
     {
-      name          = "fsx-production"
+      name          = "fsx-production1"
       subnet_id     = module.network.private_subnet_ids[0]
       instance_type = "m5.xlarge"
       ami_id        = "ami-0c94855ba95c71c99"
@@ -90,22 +118,22 @@ module "ec2" {
         Role        = "fsx-production"
       }
     },
-    # Instance 2: fsx-planning (private subnet, port 9002)
+    # Instance 2: fsx-production2 (private subnet, app server)
     {
-      name          = "fsx-planning"
+      name          = "fsx-production2"
       subnet_id     = module.network.private_subnet_ids[1]
       instance_type = "m5.xlarge"
       ami_id        = "ami-0c94855ba95c71c99"
-      port          = 9002
+      port          = 9001
       public        = false
       key_name      = "fsx-app-key"
       tags = {
         Environment = var.env
         Project     = var.org
-        Role        = "fsx-planning"
+        Role        = "fsx-production"
       }
     },
-    # Instance 3: fsx-scheduler (private subnet, port 9006)
+    # Instance 3: fsx-scheduler (private subnet, scheduler)
     {
       name          = "fsx-scheduler"
       subnet_id     = module.network.private_subnet_ids[2]
@@ -120,7 +148,7 @@ module "ec2" {
         Role        = "fsx-scheduler"
       }
     },
-    # Instance 4: fsx-web (private subnet, port 8001)
+    # Instance 4: fsx-web (private subnet, web server)
     {
       name          = "fsx-web"
       subnet_id     = module.network.private_subnet_ids[0]
@@ -135,7 +163,7 @@ module "ec2" {
         Role        = "fsx-web"
       }
     },
-    # Instance 5: fsx-auth-server (private subnet, port 8080)
+    # Instance 5: fsx-auth-server (private subnet, auth server)
     {
       name          = "fsx-auth-server"
       subnet_id     = module.network.private_subnet_ids[1]
@@ -153,8 +181,86 @@ module "ec2" {
   ]
 }
 
+# ============================================================================
+# EFS Module: Shared File Storage
+# ============================================================================
 
-# RDS module: provisions MySQL database in private subnets
+module "efs" {
+  source             = "../../modules/efs"
+  name               = "${var.org}-${var.env}-efs"
+  vpc_id             = module.network.vpc_id
+  subnet_ids         = module.network.private_subnet_ids
+  security_group_ids = [module.ec2.app_sg_id]
+  tags = {
+    Name        = "${var.org}-${var.env}-efs"
+    web_port    = 9002
+    Environment = var.env
+    Project     = var.org
+  }
+}
+
+# ============================================================================
+# ALB Modules: Application Load Balancers for Web, API, Auth
+# ============================================================================
+
+
+module "alb_web" {
+  source              = "../../modules/alb"
+  name                = "${var.org}-${var.env}-alb-web"
+  vpc_id              = module.network.vpc_id
+  subnet_ids          = module.network.public_subnet_ids
+  security_group_ids  = [module.network.alb_sg_id]
+  target_instance_ids = [module.ec2.instance_ids[3]]
+  type                = "web"
+  web_port            = 80
+  tags = {
+    Name        = "${var.org}-${var.env}-alb-web"
+    Environment = var.env
+    Project     = var.org
+  }
+}
+
+
+module "alb_api" {
+  source              = "../../modules/alb"
+  name                = "${var.org}-${var.env}-alb-api"
+  vpc_id              = module.network.vpc_id
+  subnet_ids          = module.network.public_subnet_ids
+  security_group_ids  = [module.network.alb_sg_id]
+  target_instance_ids = [module.ec2.instance_ids[0], module.ec2.instance_ids[1]]
+  type                = "api"
+  web_port            = 9001
+  tags = {
+    Name        = "${var.org}-${var.env}-alb-api"
+    Environment = var.env
+    Project     = var.org
+  }
+}
+
+
+module "alb_auth" {
+  source              = "../../modules/alb"
+  name                = "${var.org}-${var.env}-alb-auth"
+  vpc_id              = module.network.vpc_id
+  subnet_ids          = module.network.public_subnet_ids
+  security_group_ids  = [module.network.alb_sg_id]
+  target_instance_ids = [module.ec2.instance_ids[4]]
+  type                = "auth"
+  auth_port           = 8080
+  tags = {
+    Name        = "${var.org}-${var.env}-alb-auth"
+    Environment = var.env
+    Project     = var.org
+  }
+}
+
+
+
+
+# ============================================================================
+# RDS Module: MySQL Database
+# ============================================================================
+
 module "rds" {
   source                 = "../../modules/rds"
   name                   = "${var.org}-${var.env}-mysql"
@@ -172,8 +278,10 @@ module "rds" {
   }
 }
 
+# ============================================================================
+# S3 Module: File Storage Bucket
+# ============================================================================
 
-# S3 module: creates an S3 bucket for file storage
 module "s3" {
   source      = "../../modules/s3"
   bucket_name = "${var.org}-${var.env}-resources"
@@ -183,24 +291,9 @@ module "s3" {
   }
 }
 
+# ============================================================================
+# Outputs: Useful Resource IDs
+# ============================================================================
 
-# ALB module: provisions Application Load Balancer for public-facing services
-module "alb" {
-  source             = "../../modules/alb"
-  name               = "${var.org}-${var.env}-alb"
-  vpc_id             = module.network.vpc_id
-  subnet_ids         = module.network.public_subnet_ids
-  security_group_ids = [module.network.default_sg_id]
-  # Pass both instance IDs: [web, auth]
-  target_instance_ids = [module.ec2.instance_ids[3], module.ec2.instance_ids[4]]
-  web_port            = 80
-  auth_port           = 8080
-  tags = {
-    Environment = var.env
-    Project     = var.org
-  }
-}
-
-# Outputs: VPC ID and CI IAM role ARN
 output "vpc_id" { value = module.network.vpc_id }
 output "ci_role" { value = module.iam.ci_role_arn }
