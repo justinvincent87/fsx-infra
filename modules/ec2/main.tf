@@ -45,6 +45,14 @@ variable "vpc_id" {}
 
 # Security group for all EC2s
 resource "aws_security_group" "app" {
+  # Allow inbound HTTP (port 80) from anywhere
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+    description = "Allow HTTP from anywhere"
+  }
   # Allow outbound NFS (port 2049) to anywhere
   egress {
     from_port   = 2049
@@ -170,6 +178,15 @@ resource "aws_security_group" "app" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
     description = "Allow HTTPS to any"
+  }
+
+  # Allow egress to 122.184.95.42 on any port
+  egress {
+    from_port   = 0
+    to_port     = 65535
+    protocol    = "tcp"
+    cidr_blocks = ["122.184.95.42/32"]
+    description = "Allow access to 122.184.95.42 on any port"
   }
 
   tags = { Name = "${var.name_prefix}ec2-app-sg" }
