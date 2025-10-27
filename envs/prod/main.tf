@@ -266,12 +266,23 @@ module "rds" {
   name                   = "${var.org}-${var.env}-mysql"
   engine                 = "mysql"
   engine_version         = "8.0"
-  instance_class         = "db.t3.medium"
+  instance_class         = "db.m6g.xlarge"
   allocated_storage      = 20
   username               = "fsxadmin"         # Use Secrets Manager for production
   password               = "qzMZRi7FlTzBWXop" # Use Secrets Manager for production
   subnet_ids             = module.network.private_subnet_ids
   vpc_security_group_ids = [module.ec2.app_sg_id] # Allow MySQL from EC2 SG
+
+  # Automated backup configuration
+  backup_retention_period = 7
+  backup_window           = "21:30-22:30"         # IST 3:00 AM - 4:00 AM
+  maintenance_window      = "mon:22:30-mon:23:30" # IST Monday 4:00 AM - 5:00 AM
+  apply_immediately       = true                  # Apply changes immediately
+
+  # Performance Insights
+  performance_insights_enabled          = true
+  performance_insights_retention_period = 7 # 7 days (free tier) or 731 days (paid)
+
   tags = {
     Environment = var.env
     Project     = var.org
