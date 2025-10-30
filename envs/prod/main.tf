@@ -137,7 +137,7 @@ module "ec2" {
     {
       name          = "fsx-scheduler"
       subnet_id     = module.network.private_subnet_ids[2]
-      instance_type = "m5.2xlarge"
+      instance_type = "t3.small"
       ami_id        = "ami-0c94855ba95c71c99"
       port          = 9006
       public        = false
