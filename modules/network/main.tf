@@ -50,15 +50,15 @@ resource "aws_subnet" "public" {
 
 # One NAT Gateway per AZ (and EIP)
 resource "aws_eip" "nat" {
-  count  = length(var.azs)
+  count  = length(var.nat_count)
   domain = "vpc"
   tags   = merge(var.tags, { "Name" = "${var.name}-nat-${count.index}" })
 }
 
 resource "aws_nat_gateway" "nat" {
-  count         = length(var.azs)
+  count         = length(var.nat_count)
   allocation_id = aws_eip.nat[count.index].id
-  subnet_id     = aws_subnet.public[count.index].id
+  subnet_id     = aws_subnet.public[var.nat_count[count.index]].id
   tags          = merge(var.tags, { "Name" = "${var.name}-nat-${count.index}" })
 }
 
