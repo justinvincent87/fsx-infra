@@ -107,7 +107,7 @@ module "ec2" {
     {
       name          = "fsx-production1"
       subnet_id     = module.network.private_subnet_ids[0]
-      instance_type = "m5.xlarge"
+      instance_type = "t3.small"
       ami_id        = "ami-0c94855ba95c71c99"
       port          = 9001
       public        = false
