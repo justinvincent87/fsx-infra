@@ -42,7 +42,7 @@ module "network" {
   public_subnet_cidrs  = ["10.10.1.0/24", "10.10.2.0/24", "10.10.3.0/24"]
   private_subnet_cidrs = ["10.10.11.0/24", "10.10.12.0/24", "10.10.13.0/24"]
   azs                  = ["${var.region}a", "${var.region}b", "${var.region}c"]
-  nat_count            = [0, 1, 2]
+  nat_count            = [0] # Changed from [0, 1, 2] to [0] - only 1 NAT Gateway
   tags = {
     Environment = var.env
     Project     = var.org
