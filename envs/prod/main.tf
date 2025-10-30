@@ -81,7 +81,7 @@ module "bastion" {
     {
       name          = "fsx-bastion"
       subnet_id     = module.network.public_subnet_ids[2]
-      instance_type = "m5.xlarge"
+      instance_type = "t4g.nano"
       ami_id        = "ami-0c94855ba95c71c99"
       port          = 22
       public        = true
@@ -230,6 +230,7 @@ module "alb_api" {
   target_instance_ids = [module.ec2.instance_ids[0], module.ec2.instance_ids[1]]
   type                = "api"
   web_port            = 9001
+  idle_timeout        = 4000 # Maximum timeout (4000 seconds = ~66 minutes) for large payloads
   tags = {
     Name        = "${var.org}-${var.env}-alb-api"
     Environment = var.env

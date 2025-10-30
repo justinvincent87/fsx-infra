@@ -20,6 +20,11 @@ variable "auth_port" {
   description = "Port auth is running on EC2 (for auth)"
   default     = 8080
 }
+variable "idle_timeout" {
+  description = "The time in seconds that the connection is allowed to be idle (default: 60, max: 4000)"
+  type        = number
+  default     = 60
+}
 
 resource "aws_lb" "this" {
   name               = var.name
@@ -27,6 +32,7 @@ resource "aws_lb" "this" {
   load_balancer_type = "application"
   subnets            = var.subnet_ids
   security_groups    = var.security_group_ids
+  idle_timeout       = var.idle_timeout
   tags               = var.tags
 }
 
@@ -111,7 +117,8 @@ resource "aws_lb_target_group" "api" {
   vpc_id      = var.vpc_id
   target_type = "instance"
   health_check {
-    path                = "/"
+    enabled             = true
+    path                = "/api/zone"
     protocol            = "HTTP"
     matcher             = "200-399"
     interval            = 30
