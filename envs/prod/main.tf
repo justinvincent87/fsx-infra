@@ -81,7 +81,7 @@ module "bastion" {
     {
       name          = "fsx-bastion"
       subnet_id     = module.network.public_subnet_ids[2]
-      instance_type = "t4g.nano"
+      instance_type = "t3.nano"
       ami_id        = "ami-0c94855ba95c71c99"
       port          = 22
       public        = true
