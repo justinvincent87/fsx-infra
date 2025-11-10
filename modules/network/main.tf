@@ -99,7 +99,7 @@ resource "aws_route" "private_nat" {
   count                  = length(var.azs)
   route_table_id         = aws_route_table.private[count.index].id
   destination_cidr_block = "0.0.0.0/0"
-  nat_gateway_id         = aws_nat_gateway.nat[count.index].id
+  nat_gateway_id         = aws_nat_gateway.nat[0].id # All route to the single NAT Gateway
 }
 
 # Associate each private subnet with the route table in its AZ
