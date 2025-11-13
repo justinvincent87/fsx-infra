@@ -177,6 +177,36 @@ module "ec2" {
         Project     = var.org
         Role        = "fsx-auth-server"
       }
+    },
+    # Instance 6: janani-fsx-production (private subnet, app server - similar to fsx-production2)
+    {
+      name          = "janani-fsx-production"
+      subnet_id     = module.network.private_subnet_ids[2]
+      instance_type = "t3.medium"
+      ami_id        = "ami-0c94855ba95c71c99"
+      port          = 9001
+      public        = false
+      key_name      = "fsx-app-key"
+      tags = {
+        Environment = var.env
+        Project     = var.org
+        Role        = "janani-fsx-production"
+      }
+    },
+    # Instance 7: janani-fsx-web (private subnet, web server - similar to fsx-web)
+    {
+      name          = "janani-fsx-web"
+      subnet_id     = module.network.private_subnet_ids[1]
+      instance_type = "t3.small"
+      ami_id        = "ami-0c94855ba95c71c99"
+      port          = 8001
+      public        = false
+      key_name      = "fsx-app-key"
+      tags = {
+        Environment = var.env
+        Project     = var.org
+        Role        = "janani-fsx-web"
+      }
     }
   ]
 }
@@ -250,6 +280,41 @@ module "alb_auth" {
   auth_port           = 8080
   tags = {
     Name        = "${var.org}-${var.env}-alb-auth"
+    Environment = var.env
+    Project     = var.org
+  }
+}
+
+# ALB for janani-fsx-production (similar to alb_api)
+module "alb_janani_production" {
+  source              = "../../modules/alb"
+  name                = "janani-${var.env}-alb-production"
+  vpc_id              = module.network.vpc_id
+  subnet_ids          = module.network.public_subnet_ids
+  security_group_ids  = [module.network.alb_sg_id]
+  target_instance_ids = [module.ec2.instance_ids[5]]
+  type                = "api"
+  web_port            = 9001
+  idle_timeout        = 4000 # Maximum timeout (4000 seconds = ~66 minutes) for large payloads
+  tags = {
+    Name        = "janani-${var.env}-alb-production"
+    Environment = var.env
+    Project     = var.org
+  }
+}
+
+# ALB for janani-fsx-web (similar to alb_web)
+module "alb_janani_web" {
+  source              = "../../modules/alb"
+  name                = "janani-${var.env}-alb-web"
+  vpc_id              = module.network.vpc_id
+  subnet_ids          = module.network.public_subnet_ids
+  security_group_ids  = [module.network.alb_sg_id]
+  target_instance_ids = [module.ec2.instance_ids[6]]
+  type                = "web"
+  web_port            = 80
+  tags = {
+    Name        = "janani-${var.env}-alb-web"
     Environment = var.env
     Project     = var.org
   }
